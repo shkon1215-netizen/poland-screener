@@ -56,8 +56,26 @@ controlled names (BNP BP, Energa, Polenergia, ASEE).
    the relative screen. `--fallback-peer-keys board` benchmarks them against
    the whole surviving market (100% coverage) - an option, not the default.
 2. NewConnect not read (nothing clears USD 600m).
-3. Not yet published: no git repo / GitHub Pages workflow yet (Germany's
-   `.github/workflows/screen.yml` is the template; GPW's WAF vs CI runners untested).
-4. README.md not yet written.
+3. Ownership needs GPW's register; if the factsheet calls fail, flags are
+   simply absent (`ownership_unknown` in the funnel), not guessed.
+
+## Publishing
+
+`.github/workflows/screen.yml` runs at 17:00 UTC on weekdays (after the GPW
+close in both CET and CEST), builds `site/`, and deploys to GitHub Pages, with
+a retry after a pause for Yahoo throttling.
+
+Live: https://shkon1215-netizen.github.io/poland-screener/. Unlisted -
+`noindex` plus a blanket `robots.txt` - but the repo is public, which free
+Pages requires. No screen output is committed.
+
+**GPW and Yahoo both answer GitHub's runners** - confirmed on the first run,
+2026-10-06: roster 402 / 44 sector codes, 38 GPW factsheets fetched with no
+failures, no retry needed, and the funnel matched the local run line for line
+(53 / 36 / 7). If the roster step ever fails in CI while working locally,
+suspect GPW's WAF blocking the runner range before a code change.
+
+A docs-only push does not trigger a run (`paths-ignore: **.md`); start one with
+`gh workflow run screen.yml`.
 
 Research tool, not investment advice.
