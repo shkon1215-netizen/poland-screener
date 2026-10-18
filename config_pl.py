@@ -21,7 +21,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-VALUATION_METRICS = ("trailing_pe", "price_to_book", "ev_to_ebitda")
+# P/FCF is the fourth: market value over the last filed free cash flow
+# (add_cashflow_metrics). The relative test is unchanged - 20% below
+# peers on at least two of the metrics a company has.
+VALUATION_METRICS = ("trailing_pe", "price_to_book", "ev_to_ebitda", "price_to_fcf")
 
 # Polish convention is C/Z and C/WK, but the dashboard is read in English and
 # the other European pages say P/E and P/B.
@@ -29,6 +32,7 @@ METRIC_LABELS = {
     "trailing_pe": "P/E",
     "price_to_book": "P/B",
     "ev_to_ebitda": "EV/EBITDA",
+    "price_to_fcf": "P/FCF",
 }
 
 # Same reasoning as Korea: a zero or negative multiple means "no earnings" or
@@ -39,6 +43,8 @@ METRIC_BOUNDS = {
     "trailing_pe": (1.0, 200.0),
     "price_to_book": (0.05, 30.0),
     "ev_to_ebitda": (0.5, 100.0),
+    # P/E's bounds: a free cash flow is an earnings-like flow.
+    "price_to_fcf": (1.0, 200.0),
 }
 
 # ---------------------------------------------------------------------------
@@ -235,7 +241,17 @@ class ScreenConfig:
     abs_financials_pbr_only: bool = True
     abs_require_pbr_vs_roe: bool = True
     abs_cost_of_equity_pct: float = 10.0
+    # The user's 2% payout floor, now on the SHAREHOLDER yield (dividends +
+    # buybacks - issuance); the dividend yield where no cash flow was filed.
     abs_min_div_yield: float = 2.0
+
+    # --- One-off guard (apply_oneoff_guard) ---
+    oneoff_guard: bool = True
+    # Trailing net income above this multiple of after-tax operating profit
+    # is treated as below-the-line. Ordinary companies measure 1.0-1.2.
+    oneoff_ratio: float = 1.5
+    # CIT standard rate.
+    oneoff_tax_pct: float = 19.0
 
     # --- Own-history screen ---
     # Same parameters as every other market. Yahoo holds four filed years for

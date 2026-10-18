@@ -65,6 +65,8 @@ def parse_args() -> argparse.Namespace:
                    help="drop the P/B < ROE/CoE test")
     p.add_argument("--coe", type=float, default=D.abs_cost_of_equity_pct,
                    help="cost of equity %% for the fair-P/B test")
+    p.add_argument("--no-oneoff-guard", action="store_true",
+                   help="score trailing earnings as reported, one-offs included")
     p.add_argument("--abs-min-div", type=float, default=D.abs_min_div_yield,
                    help="absolute screen: dividend yield %% floor; 0 disables")
     p.add_argument("--no-financials", action="store_true",
@@ -140,6 +142,7 @@ def main() -> int:
         abs_require_pbr_vs_roe=not a.no_abs_fair_pbr,
         abs_cost_of_equity_pct=a.coe,
         abs_min_div_yield=a.abs_min_div,
+        oneoff_guard=not a.no_oneoff_guard,
         hist_min_discount=a.hist_discount,
         hist_min_metrics=a.hist_min_metrics,
         peer_keys=keys(a.peer_keys),
@@ -307,6 +310,16 @@ def main() -> int:
     ustats.update(fxstats)
 
     # 9. screen
+
+    # Cash flow (P/FCF, shareholder yield) and the one-off guard - both
+    # before the screen: P/FCF is a peer metric, and a capped P/E must be
+    # what the peer medians are built from.
+    if "lf_fcf" in pre.columns:
+        pre, cfstats = PF.add_cashflow_metrics(pre)
+        ustats.update(cfstats)
+    pre, ostats = PF.apply_oneoff_guard(pre, cfg)
+    ustats.update(ostats)
+
     res, stats = run_screen(pre, usd_per_pln, cfg)
     if res.empty:
         print("Nothing survived screening.")
@@ -377,6 +390,10 @@ def main() -> int:
             "abs_require_pbr_vs_roe": cfg.abs_require_pbr_vs_roe,
             "abs_cost_of_equity_pct": cfg.abs_cost_of_equity_pct,
             "abs_min_div_yield": cfg.abs_min_div_yield,
+            "payout_basis": "shareholder_yield",
+            "oneoff_guard": cfg.oneoff_guard,
+            "oneoff_ratio": cfg.oneoff_ratio,
+            "metrics": list(cfg.metrics),
             "hist_min_discount": cfg.hist_min_discount,
             "hist_min_metrics": cfg.hist_min_metrics,
             "hist_min_years": cfg.hist_min_years,
